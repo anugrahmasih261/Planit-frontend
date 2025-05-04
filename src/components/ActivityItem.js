@@ -29,7 +29,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import tripService from '../api/trips';
 import { useAuth } from '../contexts/AuthContext';
 
-const ActivityItem = ({ activity, onVote, currentUserId }) => {
+const ActivityItem = ({ activity, onVote, currentUserId, onEdit, onDelete, onUpdate }) => {
     const { user } = useAuth();
     const [anchorEl, setAnchorEl] = useState(null);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -66,7 +66,7 @@ const ActivityItem = ({ activity, onVote, currentUserId }) => {
         try {
             const activityData = {
                 title,
-                date: date.toISOString().split('T')[0], // Proper date formatting
+                date: date.toISOString().split('T')[0],
                 time: time || null,
                 category,
                 estimated_cost: estimatedCost ? parseFloat(estimatedCost) : null,
@@ -81,6 +81,8 @@ const ActivityItem = ({ activity, onVote, currentUserId }) => {
             );
             
             setEditDialogOpen(false);
+            onEdit && onEdit({ ...activity, ...activityData });
+            onUpdate && await onUpdate();
         } catch (err) {
             console.error('Failed to update activity:', err);
         }
@@ -94,6 +96,8 @@ const ActivityItem = ({ activity, onVote, currentUserId }) => {
                 user.access
             );
             setDeleteDialogOpen(false);
+            onDelete && await onDelete(activity.id);
+            onUpdate && await onUpdate();
         } catch (err) {
             console.error('Failed to delete activity:', err);
         }
@@ -176,7 +180,6 @@ const ActivityItem = ({ activity, onVote, currentUserId }) => {
                     </Typography>
                 )}
                 
-                {/* Voting Section - Fixed */}
                 <Box sx={{ 
                     display: 'flex', 
                     alignItems: 'center',

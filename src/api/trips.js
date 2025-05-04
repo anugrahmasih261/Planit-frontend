@@ -1,11 +1,7 @@
 import axios from 'axios';
 
-// const API_URL = 'http://localhost:8000/api/trips';
-
 const API_URL = 'https://planit-backend-2f8w.onrender.com/api/trips';
 
-
-// Helper function to create config with auth token
 const getConfig = (token) => ({
   headers: {
     'Authorization': `Bearer ${token}`,
@@ -13,32 +9,40 @@ const getConfig = (token) => ({
   }
 });
 
-// Unified error handling
+// Unified error handling - FIXED VERSION
 const handleApiError = (error) => {
   if (error.response) {
-    // Forward the backend's error response
     throw error.response.data;
   } else if (error.request) {
-    // The request was made but no response was received
-    throw { detail: 'Network error. Please check your connection.' };
+    throw new Error('Network error. Please check your connection.');
   } else {
-    // Something happened in setting up the request
-    throw { detail: 'Request error. Please try again.' };
+    throw new Error('Request error. Please try again.');
   }
 };
 
 const createTrip = async (tripData, token) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/`, 
-      tripData, 
-      getConfig(token)
-    );
+    const response = await axios.post(`${API_URL}/`, tripData, getConfig(token));
     return response.data;
   } catch (error) {
     handleApiError(error);
   }
 };
+
+
+
+// const createTrip = async (tripData, token) => {
+//   try {
+//     const response = await axios.post(
+//       `${API_URL}/`, 
+//       tripData, 
+//       getConfig(token)
+//     );
+//     return response.data;
+//   } catch (error) {
+//     handleApiError(error);
+//   }
+// };
 
 const getTrips = async (token) => {
   try {

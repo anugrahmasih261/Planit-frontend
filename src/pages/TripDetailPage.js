@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Container,
@@ -29,8 +29,6 @@ import {
 import {
     Add,
     MoreVert,
-    ThumbUp,
-    ThumbDown,
     PersonAdd,
     Share,
     Edit,
@@ -74,7 +72,7 @@ const TripDetailPage = () => {
     });
 
     // Fetch trip data with error handling
-    const fetchTrip = async () => {
+    const fetchTrip = useCallback(async () => {
         try {
             setLoading(true);
             setError('');
@@ -86,11 +84,11 @@ const TripDetailPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, user.access]);
 
     useEffect(() => {
         fetchTrip();
-    }, [id, user.access]);
+    }, [fetchTrip]);
 
     // Menu handlers
     const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
@@ -122,52 +120,47 @@ const TripDetailPage = () => {
             setInviteDialogOpen(false);
             setSuccess('Invitation sent successfully!');
             setTimeout(() => setSuccess(''), 3000);
-            fetchTrip();
+            await fetchTrip();
         } catch (err) {
             console.error('Failed to invite user:', err);
             setError(err.detail || 'Failed to invite user');
         }
     };
 
-
-
-    // Updated activity submit handler:
-const handleActivitySubmit = async () => {
-    if (!activityForm.title || !activityForm.date) {
-        setError('Title and date are required');
-        return;
-    }
-    
-    try {
-        const activityData = {
-            title: activityForm.title,
-            date: activityForm.date.toISOString().split('T')[0],
-            time: activityForm.time || null,
-            category: activityForm.category,
-            estimated_cost: activityForm.estimated_cost ? parseFloat(activityForm.estimated_cost) : null,
-            notes: activityForm.notes || null,
-            trip: id // Explicitly include trip ID
-        };
-        
-        if (editActivityId) {
-            await tripService.updateActivity(id, editActivityId, activityData, user.access);
-            setSuccess('Activity updated successfully!');
-        } else {
-            await tripService.createActivity(id, activityData, user.access);
-            setSuccess('Activity created successfully!');
+    const handleActivitySubmit = async () => {
+        if (!activityForm.title || !activityForm.date) {
+            setError('Title and date are required');
+            return;
         }
-        
-        setActivityDialogOpen(false);
-        resetActivityForm();
-        setTimeout(() => setSuccess(''), 3000);
-        fetchTrip();
-    } catch (err) {
-        console.error('Failed to save activity:', err);
-        setError(err.detail || err.message || 'Failed to save activity');
-    }
-};
 
+        try {
+            const activityData = {
+                title: activityForm.title,
+                date: activityForm.date.toISOString().split('T')[0],
+                time: activityForm.time || null,
+                category: activityForm.category,
+                estimated_cost: activityForm.estimated_cost ? parseFloat(activityForm.estimated_cost) : null,
+                notes: activityForm.notes || null,
+                trip: id
+            };
 
+            if (editActivityId) {
+                await tripService.updateActivity(id, editActivityId, activityData, user.access);
+                setSuccess('Activity updated successfully!');
+            } else {
+                await tripService.createActivity(id, activityData, user.access);
+                setSuccess('Activity created successfully!');
+            }
+
+            setActivityDialogOpen(false);
+            resetActivityForm();
+            setTimeout(() => setSuccess(''), 3000);
+            await fetchTrip();
+        } catch (err) {
+            console.error('Failed to save activity:', err);
+            setError(err.detail || err.message || 'Failed to save activity');
+        }
+    };
 
     const resetActivityForm = () => {
         setActivityForm({
@@ -200,7 +193,7 @@ const handleActivitySubmit = async () => {
                 await tripService.deleteActivity(id, activityId, user.access);
                 setSuccess('Activity deleted successfully!');
                 setTimeout(() => setSuccess(''), 3000);
-                fetchTrip();
+                await fetchTrip();
             } catch (err) {
                 console.error('Failed to delete activity:', err);
                 setError('Failed to delete activity');
@@ -208,19 +201,15 @@ const handleActivitySubmit = async () => {
         }
     };
 
-   
-
-
-    // Handle vote function:
-const handleVote = async (activityId, vote) => {
-    try {
-        await tripService.voteActivity(id, activityId, vote, user.access);
-        fetchTrip(); // Refresh to show updated votes
-    } catch (err) {
-        console.error('Failed to vote:', err);
-        setError('Failed to record vote');
-    }
-};
+    const handleVote = async (activityId, vote) => {
+        try {
+            await tripService.voteActivity(id, activityId, vote, user.access);
+            await fetchTrip();
+        } catch (err) {
+            console.error('Failed to vote:', err);
+            setError('Failed to record vote');
+        }
+    };
 
     const handleCopyTripCode = () => {
         if (trip?.trip_code) {
@@ -232,7 +221,6 @@ const handleVote = async (activityId, vote) => {
         }
     };
 
-    // Helper functions for safe data access
     const getParticipantInitial = (participant) => {
         const displayName = participant?.user?.username || participant?.user?.email || '?';
         return displayName.charAt(0).toUpperCase();
@@ -246,7 +234,6 @@ const handleVote = async (activityId, vote) => {
         return participant?.user?.id === trip?.created_by?.id;
     };
 
-    // Loading and error states
     if (loading) {
         return (
             <Container sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -428,9 +415,6 @@ const handleVote = async (activityId, vote) => {
                     </Button>
                 </Box>
 
-
-
-                // In the activities rendering section:
                 {Object.keys(activitiesByDate).length > 0 ? (
                     Object.entries(activitiesByDate).map(([date, activities]) => (
                         <Box key={date} sx={{ mb: 4 }}>
@@ -445,6 +429,9 @@ const handleVote = async (activityId, vote) => {
                                             activity={activity}
                                             onVote={handleVote}
                                             currentUserId={user.id}
+                                            onEdit={handleEditActivity}
+                                            onDelete={handleDeleteActivity}
+                                            onUpdate={fetchTrip}
                                         />
                                     </Grid>
                                 ))}
@@ -456,8 +443,6 @@ const handleVote = async (activityId, vote) => {
                         No activities added yet. Click "Add Activity" to get started!
                     </Typography>
                 )}
-
-
             </Box>
 
             {/* Activity Dialog */}
