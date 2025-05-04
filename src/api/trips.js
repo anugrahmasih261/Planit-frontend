@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api/trips';
+// const API_URL = 'http://localhost:8000/api/trips';
+
+const API_URL = 'https://planit-backend-2f8w.onrender.com/api/trips';
+
 
 // Helper function to create config with auth token
 const getConfig = (token) => ({
@@ -163,20 +166,6 @@ const deleteActivity = async (tripId, activityId, token) => {
 };
 
 
-// this is old
-
-// const voteActivity = async (tripId, activityId, vote, token) => {
-//   try {
-//     const response = await axios.post(
-//       `${API_URL}/${tripId}/activities/${activityId}/vote/`, 
-//       { vote }, 
-//       getConfig(token)
-//     );
-//     return response.data;
-//   } catch (error) {
-//     handleApiError(error);
-//   }
-// };
 
 // this is new if no change delete
 
